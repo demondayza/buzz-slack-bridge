@@ -63,8 +63,10 @@ export class Bridge {
 
     const buzzTask = this.#buzz.run(async (event) => {
       await this.#handleBuzzEvent(event);
-      const previous = Number(this.#store.getMetadata("buzz_since")) || 0;
-      this.#store.setMetadata("buzz_since", String(Math.max(previous, event.created_at)));
+      if (event.kind !== BUZZ_KIND.profile) {
+        const previous = Number(this.#store.getMetadata("buzz_since")) || 0;
+        this.#store.setMetadata("buzz_since", String(Math.max(previous, event.created_at)));
+      }
     }, signal);
     const matrixTask = this.#runMatrixLoop(signal);
     const profileTask = this.#publishBridgeProfile();
