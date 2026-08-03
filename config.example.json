@@ -1,0 +1,22 @@
+{
+  "buzz": {
+    "profileName": "Slack Bridge",
+    "relayUrl": "ws://host.docker.internal:3000"
+  },
+  "matrix": {
+    "homeserverUrl": "http://synapse:8008",
+    "userId": "@buzzbridge:matrix.localhost"
+  },
+  "databasePath": "/data/bridge.db",
+  "health": {
+    "host": "0.0.0.0",
+    "port": 8787
+  },
+  "channels": [
+    {
+      "label": "general",
+      "matrixRoomId": "!replace-with-mautrix-room-id:matrix.localhost",
+      "buzzChannelId": "00000000-0000-4000-8000-000000000000"
+    }
+  ]
+}

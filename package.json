@@ -1,0 +1,33 @@
+{
+  "name": "buzz-slack-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A durable Matrix-to-Buzz adapter for mautrix-slack deployments",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "buzz-pubkey": "node scripts/show-buzz-pubkey.mjs",
+    "check": "npm run lint && npm run test && npm run build",
+    "dev": "tsx watch src/index.ts",
+    "format": "biome format --write .",
+    "lint": "biome check . && tsc --noEmit",
+    "rooms": "node scripts/list-rooms.mjs",
+    "start": "node dist/index.js",
+    "test": "node --disable-warning=ExperimentalWarning --import tsx --test test/**/*.test.ts"
+  },
+  "dependencies": {
+    "nostr-tools": "2.24.1",
+    "ws": "8.21.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.6",
+    "@types/node": "24.3.0",
+    "@types/ws": "8.18.1",
+    "tsx": "4.23.1",
+    "typescript": "7.0.2"
+  }
+}
