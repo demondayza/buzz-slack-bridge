@@ -1,0 +1,65 @@
+name: buzz-slack-bridge
+
+services:
+  synapse:
+    image: ghcr.io/element-hq/synapse:v1.157.2@sha256:097e3120b8ecf97e4f92537d7af2da41564c706e33fc740f3741c9defacc2af1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${MATRIX_PORT:-8008}:8008"
+    volumes:
+      - ./deploy/generated/synapse:/data
+      - ./deploy/generated/mautrix-slack/registration.yaml:/data/mautrix-slack-registration.yaml:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8008/health')",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  mautrix-slack:
+    image: dock.mau.dev/mautrix/slack:v0.2607.0@sha256:36e05f31f6c6e74385766cb3bda620f6082b936c0f7ec3415157a2cdf2f3a773
+    restart: unless-stopped
+    depends_on:
+      synapse:
+        condition: service_healthy
+    volumes:
+      - ./deploy/generated/mautrix-slack:/data
+
+  adapter:
+    build:
+      context: .
+    restart: unless-stopped
+    depends_on:
+      mautrix-slack:
+        condition: service_started
+      synapse:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      BRIDGE_CONFIG: /config/config.json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./deploy/generated/bridge/config.json:/config/config.json:ro
+      - adapter-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:8787/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  adapter-data:

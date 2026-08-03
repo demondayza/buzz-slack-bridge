@@ -1,6 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import type { Event as NostrEvent } from "nostr-tools";
 
 export interface EventMapping {
@@ -12,14 +12,13 @@ export interface EventMapping {
 }
 
 export class BridgeStore {
-  readonly #database: Database.Database;
+  readonly #database: DatabaseSync;
 
   constructor(filePath: string) {
     const absolutePath = resolve(filePath);
     mkdirSync(dirname(absolutePath), { recursive: true });
-    this.#database = new Database(absolutePath);
-    this.#database.pragma("journal_mode = WAL");
-    this.#database.pragma("foreign_keys = ON");
+    this.#database = new DatabaseSync(absolutePath);
+    this.#database.exec("PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
     this.#migrate();
   }
 
@@ -76,13 +75,17 @@ export class BridgeStore {
   }
 
   completeMatrixToBuzz(mapping: EventMapping): void {
-    const complete = this.#database.transaction(() => {
+    this.#database.exec("BEGIN IMMEDIATE");
+    try {
       this.#insertMapping(mapping);
       this.#database
         .prepare("DELETE FROM matrix_to_buzz_outbox WHERE matrix_event_id = ?")
         .run(mapping.matrixEventId);
-    });
-    complete();
+      this.#database.exec("COMMIT");
+    } catch (error) {
+      this.#database.exec("ROLLBACK");
+      throw error;
+    }
   }
 
   setMetadata(key: string, value: string): void {
@@ -98,10 +101,16 @@ export class BridgeStore {
     this.#database
       .prepare(
         `INSERT INTO event_mappings(matrix_event_id, buzz_event_id, buzz_kind, direction, room_id)
-         VALUES (@matrixEventId, @buzzEventId, @buzzKind, @direction, @roomId)
+         VALUES (?, ?, ?, ?, ?)
          ON CONFLICT DO NOTHING`,
       )
-      .run(mapping);
+      .run(
+        mapping.matrixEventId,
+        mapping.buzzEventId,
+        mapping.buzzKind,
+        mapping.direction,
+        mapping.roomId,
+      );
   }
 
   #migrate(): void {
