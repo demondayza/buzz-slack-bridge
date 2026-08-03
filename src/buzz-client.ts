@@ -170,12 +170,18 @@ export class BuzzClient {
     this.#socket?.send(
       JSON.stringify([
         "REQ",
-        "buzz-slack-bridge",
+        "buzz-slack-bridge-channels",
         {
           kinds: [BUZZ_KIND.deletion, BUZZ_KIND.message, BUZZ_KIND.reaction],
           "#h": this.#channelIds,
           since: Math.max(0, this.#lastSeen - 2),
         },
+      ]),
+    );
+    this.#socket?.send(
+      JSON.stringify([
+        "REQ",
+        "buzz-slack-bridge-profiles",
         { kinds: [BUZZ_KIND.profile], limit: 1_000 },
       ]),
     );
@@ -189,7 +195,9 @@ export class BuzzClient {
     this.#eventChain = this.#eventChain
       .then(async () => {
         await this.#handler(value);
-        this.#lastSeen = Math.max(this.#lastSeen, value.created_at);
+        if (value.kind !== BUZZ_KIND.profile) {
+          this.#lastSeen = Math.max(this.#lastSeen, value.created_at);
+        }
       })
       .catch((error) => {
         logger.error("Failed to bridge Buzz event; reconnecting for replay", {
