@@ -23,12 +23,18 @@ services:
 
   mautrix-slack:
     image: dock.mau.dev/mautrix/slack:v0.2607.0@sha256:36e05f31f6c6e74385766cb3bda620f6082b936c0f7ec3415157a2cdf2f3a773
+    command:
+      - /bin/sh
+      - -c
+      - chown 1337:1337 /data && exec su-exec 1337:1337 /usr/bin/mautrix-slack -n
     restart: unless-stopped
     depends_on:
       synapse:
         condition: service_healthy
     volumes:
-      - ./deploy/generated/mautrix-slack:/data
+      - mautrix-data:/data
+      - ./deploy/generated/mautrix-slack/config.yaml:/data/config.yaml:ro
+      - ./deploy/generated/mautrix-slack/registration.yaml:/data/registration.yaml:ro
 
   adapter:
     build:
@@ -63,3 +69,4 @@ services:
 
 volumes:
   adapter-data:
+  mautrix-data:

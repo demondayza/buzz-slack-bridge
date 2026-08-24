@@ -11,8 +11,10 @@ The Slack session stored by mautrix-slack, Matrix access token, Synapse/appservi
 private key all grant message access. Keep them out of git, logs, chat, issue reports, and container
 images. The generated deployment directory and `.env` are ignored by default.
 
-Use one dedicated, least-privileged Slack account and one dedicated Buzz identity. Do not reuse a
-human's Nostr key. Restrict the Matrix listener and adapter health port at the network layer.
+Link only a Slack user who has explicitly authorized the bridge to send messages as them. A
+dedicated, least-privileged Slack account is safer but optional; an existing human identity is
+supported. Use a dedicated Buzz identity and do not reuse a human's Nostr key. Restrict the Matrix
+listener and adapter health port at the network layer.
 
 ## Reporting a vulnerability
 

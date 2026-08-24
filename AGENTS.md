@@ -24,6 +24,7 @@ This repository bridges Slack to Buzz by composing three systems:
 - Never advance a source cursor before every event in its batch succeeds.
 - Matrix redactions may delete only Buzz events originally authored by the bridge.
 - Keep credentials in environment/generated state, never repository configuration or logs.
+- Keep the mautrix database and linked Slack session in the `mautrix-data` volume.
 - Portal rooms are not encrypted because the adapter does not implement Matrix E2EE.
 
 Run `npm run check`, a container build, and `docker compose config --quiet` before committing. Update

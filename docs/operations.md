@@ -5,12 +5,13 @@
 Back up these paths together:
 
 - `deploy/generated/synapse/` — Synapse database, signing key, media, and generated secret
-- `deploy/generated/mautrix-slack/` — mautrix database, Slack credentials, and appservice tokens
+- `deploy/generated/mautrix-slack/` — mautrix configuration and appservice tokens
+- the `mautrix-data` Docker volume — mautrix database and linked Slack session
 - the `adapter-data` Docker volume — event mappings, cursors, and the Nostr outbox
 - `.env` and `deploy/generated/bridge/config.json` — bridge credentials and channel mappings
 
-All four contain sensitive data. Encrypt backups and test restoration on an isolated host. Never
-commit `deploy/generated/` or `.env`.
+Everything in this list contains sensitive data. Encrypt backups and test restoration on an
+isolated host. Never commit `deploy/generated/` or `.env`.
 
 ## Health and failure behavior
 
@@ -47,12 +48,51 @@ to older bridged events continue to resolve.
 ## Credential rotation
 
 - **Matrix token:** log the bridge account out, create a new token, update `.env`, and restart only
-  the adapter. Confirm that the account remains logged into Slack through mautrix-slack.
+  the adapter. Confirm that the linked Slack user remains logged in through mautrix-slack.
 - **Slack credential:** use the mautrix management room's logout/login commands. No adapter config
   changes are required.
 - **Buzz key:** treat rotation as a new Buzz user. Authorize it in every channel, update `.env`, and
   restart. Old Slack-originated events remain authored by the previous key and cannot be deleted by
   the new key.
+
+## Troubleshooting
+
+### mautrix reports `No user logins found`
+
+The Matrix account has not linked a Slack browser session, or the session was lost. Open the private
+management room with `@slackbot:matrix.localhost` and run
+`login token <xoxc-token> <xoxd-cookie>` again. The mautrix database and linked session live in the
+`mautrix-data` volume, so check that the volume is mounted before replacing credentials.
+
+### Matrix returns `M_FORBIDDEN`
+
+Confirm that `matrix.userId` matches the account that accepted the portal invitation. Run
+`npm run rooms` with the token from `.env`; the configured `matrixRoomId` must appear in that list.
+If it does not, accept the invitation in the Matrix client before restarting the adapter.
+
+### `/readyz` returns 503
+
+Read `docker compose logs adapter`. Readiness remains false until the Matrix token has authenticated
+and the Buzz WebSocket is connected and authenticated. Common causes are a stale Matrix token, the
+wrong relay URL, or a Buzz bridge key that has not been authorized by the relay.
+
+### An older Slack message did not appear in Buzz
+
+On its first start, the adapter records the current Matrix sync position. It does not backfill room
+history. Send a new message after the adapter reports ready. Later restarts resume from the saved
+cursor in the `adapter-data` volume.
+
+### Slack messages stop crossing the bridge
+
+The linked browser session may have expired. Check the mautrix logs and its management room. A Slack
+password change, session reset, or workspace policy can invalidate `xoxc-` and `xoxd-` credentials.
+Log in again with fresh values; no adapter configuration change is needed.
+
+### mautrix cannot open its SQLite database
+
+Stop mautrix before restoring its volume, and restore the whole `mautrix-data` volume rather than a
+single SQLite file. The container initializes the volume for mautrix's UID on startup. If the error
+follows a manual copy, check that the restored files are writable by UID 1337.
 
 ## Production hardening
 
