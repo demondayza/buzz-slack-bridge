@@ -36,7 +36,7 @@ acknowledgement is treated as successful completion.
 2. It ignores its own bridge pubkey and events already present in the mapping table.
 3. It converts the event into a Matrix message/reaction/redaction.
 4. It uses `buzz_<event-id>` as the Matrix transaction ID, making a retry idempotent.
-5. mautrix-slack sends the Matrix event to Slack through the logged-in service account.
+5. mautrix-slack sends the Matrix event to Slack as the linked existing Slack user.
 
 The Buzz subscription timestamp and Matrix sync token are durable. Filters overlap the last two Buzz
 seconds after reconnect; event IDs and mappings make the overlap safe and avoid same-second gaps.
